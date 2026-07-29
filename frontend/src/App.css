@@ -1,0 +1,169 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #f4f7fb;
+  font-family: Inter, system-ui, sans-serif;
+  color: #1f2937;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.app {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem;
+}
+
+.app > h1 {
+  text-align: center;
+  font-size: 3rem;
+  color: #0f4c81;
+}
+
+.subtitle {
+  margin-top: 1rem;
+  margin-bottom: 3rem;
+  text-align: center;
+  font-size: 1.1rem;
+  color: #6b7280;
+}
+
+.upload-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+
+  padding: 2rem;
+
+  background: white;
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+
+  margin-bottom: 2rem;
+}
+
+input[type="file"] {
+  font-size: 1rem;
+}
+
+button {
+  background: #0f4c81;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 0.9rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  transition: 0.25s;
+}
+
+button:hover:not(:disabled) {
+  background: #0b3b64;
+  transform: translateY(-2px);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error {
+  margin: 2rem auto;
+  max-width: 500px;
+  padding: 1rem;
+  text-align: center;
+
+  color: #991b1b;
+  background: #fee2e2;
+
+  border-radius: 10px;
+}
+
+.images {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem;
+
+  margin-top: 3rem;
+}
+
+.card {
+  background: white;
+  border-radius: 18px;
+  padding: 1.5rem;
+
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+.card h2 {
+  text-align: center;
+  margin-bottom: 1rem;
+  color: #0f4c81;
+}
+
+.card img {
+  width: 100%;
+  aspect-ratio: 1;
+
+  object-fit: contain;
+
+  border-radius: 10px;
+
+  background: #f4f7fb;
+  border: 1px solid #e5e7eb;
+}
+
+.result {
+  margin: 3rem auto 0;
+
+  max-width: 450px;
+
+  background: white;
+
+  border-radius: 18px;
+
+  padding: 2rem;
+
+  text-align: center;
+
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+.result h2 {
+  color: #0f4c81;
+  margin-bottom: 1rem;
+}
+
+.result p {
+  color: #6b7280;
+  margin-bottom: 0.75rem;
+}
+
+.result h1 {
+  color: #16a34a;
+  font-size: 3rem;
+}
+
+@media (max-width: 850px) {
+  .images {
+    grid-template-columns: 1fr;
+  }
+
+  .app > h1 {
+    font-size: 2.3rem;
+  }
+
+  .result h1 {
+    font-size: 2.5rem;
+  }
+}
