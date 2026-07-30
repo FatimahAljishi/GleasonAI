@@ -56,7 +56,7 @@ class EnsemblePredictor:
 
         model = smp.Unet(
             encoder_name=encoder_name,
-            encoder_weights="imagenet",
+            encoder_weights=None,
             in_channels=3,
             classes=self.NUM_CLASSES,
             activation=None,

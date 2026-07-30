@@ -10,22 +10,35 @@ router = APIRouter(
 
 CACHE_DIR = "models"
 
-efficientnet_checkpoint = hf_hub_download(
-    repo_id="FatimahAljishi/gleasonai-models",
-    filename="unet_epoch8.pt",
-    local_dir=CACHE_DIR,
-)
+_predictor = None
 
-resnext_checkpoint = hf_hub_download(
-    repo_id="FatimahAljishi/gleasonai-models",
-    filename="unet_epoch11.pt",
-    local_dir=CACHE_DIR,
-)
 
-predictor = EnsemblePredictor(
-    efficientnet_checkpoint=efficientnet_checkpoint,
-    resnext_checkpoint=resnext_checkpoint,
-)
+def get_predictor():
+    global _predictor
+
+    if _predictor is None:
+        print("Loading models...")
+
+        efficientnet_checkpoint = hf_hub_download(
+            repo_id="FatimahAljishi/gleasonai-models",
+            filename="unet_epoch8.pt",
+            local_dir=CACHE_DIR,
+        )
+
+        resnext_checkpoint = hf_hub_download(
+            repo_id="FatimahAljishi/gleasonai-models",
+            filename="unet_epoch11.pt",
+            local_dir=CACHE_DIR,
+        )
+
+        _predictor = EnsemblePredictor(
+            efficientnet_checkpoint=efficientnet_checkpoint,
+            resnext_checkpoint=resnext_checkpoint,
+        )
+
+        print("Models loaded.")
+
+    return _predictor
 
 
 @router.post("")
@@ -33,6 +46,7 @@ async def predict(file: UploadFile = File(...)):
     try:
         image = Image.open(file.file)
 
+        predictor = get_predictor()
         result = predictor.predict(image)
         mask_base64 = predictor._mask_to_base64(result["mask"])
 
