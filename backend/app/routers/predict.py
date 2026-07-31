@@ -19,14 +19,20 @@ def get_predictor():
     if _predictor is None:
         print("Loading models...")
 
-        efficientnet_checkpoint = hf_hub_download(
+        onnx_model = hf_hub_download(
             repo_id="FatimahAljishi/gleasonai-models",
-            filename="unet_epoch8_weights.pt",
+            filename="unet_epoch8.onnx",
+            local_dir=CACHE_DIR,
+        )
+
+        hf_hub_download(
+            repo_id="FatimahAljishi/gleasonai-models",
+            filename="unet_epoch8.onnx.data",
             local_dir=CACHE_DIR,
         )
 
         _predictor = EnsemblePredictor(
-            efficientnet_checkpoint=efficientnet_checkpoint,
+            onnx_path=onnx_model,
         )
 
         print("Models loaded.")

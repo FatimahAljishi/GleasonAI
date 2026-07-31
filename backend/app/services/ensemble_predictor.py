@@ -1,11 +1,7 @@
-from pathlib import Path
-from xml.parsers.expat import model
-import torch
-import segmentation_models_pytorch as smp
+import onnxruntime as ort
 import numpy as np
 from PIL import Image
-import torchvision.transforms.functional as TF
-import torch.nn.functional as F
+
 from app.utils.patching import extract_patches, stitch_predictions
 from app.utils.grading import compute_gleason_score
 import base64
@@ -18,25 +14,17 @@ class EnsemblePredictor:
 
     def __init__(
         self,
-        efficientnet_checkpoint: str,
-        device: str | None = None,
+        onnx_path: str,
     ):
 
-        self.device = torch.device(
-            device or ("cuda" if torch.cuda.is_available() else "cpu")
+        self.session = ort.InferenceSession(
+            onnx_path,
+            providers=["CPUExecutionProvider"],
         )
 
-        self.efficientnet = self._load_model(
-            encoder_name="efficientnet-b4",
-            checkpoint_path=efficientnet_checkpoint,
-        )
+        self.input_name = self.session.get_inputs()[0].name
 
-        self.preprocess_eff = smp.encoders.get_preprocessing_fn(
-            "efficientnet-b4",
-            pretrained="imagenet",
-        )
-
-        print("✓ Model loaded")
+        print("✓ ONNX model loaded")
 
     def _load_model(
         self,
@@ -61,37 +49,47 @@ class EnsemblePredictor:
 
         return model
 
-    def _preprocess(self, image: Image.Image, preprocessing_fn):
+    def _preprocess(self, image: Image.Image):
 
         image = image.convert("RGB")
 
         image = np.asarray(image).astype(np.float32)
 
-        image = preprocessing_fn(image)
+        # EfficientNet ImageNet preprocessing
+        image = image / 255.0
 
-        image = TF.to_tensor(image).float()
+        mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
+        std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
 
-        image = image.unsqueeze(0)
+        image = (image - mean) / std
 
-        image = image.to(self.device)
+        # HWC -> CHW
+        image = np.transpose(image, (2, 0, 1))
 
-        return image
+        # Add batch dimension
+        image = np.expand_dims(image, axis=0)
+
+        return image.astype(np.float32)
 
     def _predict_patch(self, patch):
 
-        # EfficientNet preprocessing
-        eff_tensor = self._preprocess(
-            patch,
-            self.preprocess_eff,
-        )
+        input_tensor = self._preprocess(patch)
 
-        with torch.no_grad():
+        logits = self.session.run(
+            None,
+            {
+                self.input_name: input_tensor,
+            },
+        )[0]
 
-            eff_logits = self.efficientnet(eff_tensor)
+        # Softmax
+        logits = logits - np.max(logits, axis=1, keepdims=True)
 
-            eff_probs = F.softmax(eff_logits, dim=1)
+        exp = np.exp(logits)
 
-        return eff_probs.squeeze(0).cpu().numpy()
+        probs = exp / np.sum(exp, axis=1, keepdims=True)
+
+        return probs.squeeze(0)
 
     def predict(
         self,
