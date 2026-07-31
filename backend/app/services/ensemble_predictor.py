@@ -2,7 +2,12 @@ import onnxruntime as ort
 import numpy as np
 from PIL import Image
 
-from app.utils.patching import extract_patches, stitch_predictions
+from app.utils.patching import (
+    extract_patches,
+    finalize_stitching,
+    initialize_stitching,
+    add_patch_prediction,
+)
 from app.utils.grading import compute_gleason_score
 import base64
 from io import BytesIO
@@ -26,24 +31,19 @@ class EnsemblePredictor:
 
         print("✓ ONNX model loaded")
 
-    def _preprocess(self, image: Image.Image):
+    def _preprocess(self, image):
 
-        image = image.convert("RGB")
+        image = image.astype(np.float32)
 
-        image = np.asarray(image).astype(np.float32)
-
-        # EfficientNet ImageNet preprocessing
-        image = image / 255.0
+        image /= 255.0
 
         mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
         std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
 
         image = (image - mean) / std
 
-        # HWC -> CHW
         image = np.transpose(image, (2, 0, 1))
 
-        # Add batch dimension
         image = np.expand_dims(image, axis=0)
 
         return image.astype(np.float32)
@@ -68,33 +68,34 @@ class EnsemblePredictor:
 
         return probs.squeeze(0)
 
-    def predict(
-        self,
-        image: Image.Image,
-    ):
+    def predict(self, image: Image.Image):
+
         image = image.convert("RGB")
 
-        image = image.resize((1024, 1024))
+        image = image.resize((512, 512))
 
         image_np = np.asarray(image)
 
-        patches, positions = extract_patches(image_np)
+        prediction_sum, weight_sum, window = initialize_stitching(
+            image_np.shape,
+            self.NUM_CLASSES,
+        )
 
-        predictions = []
+        for patch, position in extract_patches(image_np):
 
-        for patch in patches:
+            prediction = self._predict_patch(patch)
 
-            patch_image = Image.fromarray(patch.astype(np.uint8))
+            add_patch_prediction(
+                prediction_sum,
+                weight_sum,
+                window,
+                prediction,
+                position,
+            )
 
-            prediction = self._predict_patch(patch_image)
-
-            predictions.append(prediction)
-
-        mask = stitch_predictions(
-            patch_predictions=predictions,
-            patch_positions=positions,
-            image_shape=image_np.shape,
-            num_classes=self.NUM_CLASSES,
+        mask = finalize_stitching(
+            prediction_sum,
+            weight_sum,
         )
 
         gleason = compute_gleason_score(mask)
