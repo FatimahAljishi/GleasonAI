@@ -1,6 +1,15 @@
 import onnxruntime as ort
 import numpy as np
 from PIL import Image
+import os
+import psutil
+
+process = psutil.Process(os.getpid())
+
+
+def log_memory(stage):
+    print(f"{stage}: {process.memory_info().rss / 1024 / 1024:.1f} MB")
+
 
 from app.utils.patching import (
     extract_patches,
@@ -22,8 +31,15 @@ class EnsemblePredictor:
         onnx_path: str,
     ):
 
+        so = ort.SessionOptions()
+
+        so.enable_mem_pattern = False
+        so.enable_cpu_mem_arena = False
+        so.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_BASIC
+
         self.session = ort.InferenceSession(
             onnx_path,
+            sess_options=so,
             providers=["CPUExecutionProvider"],
         )
 
@@ -70,9 +86,13 @@ class EnsemblePredictor:
 
     def predict(self, image: Image.Image):
 
-        image = image.convert("RGB")
+        log_memory("Start")
 
-        image = image.resize((512, 512))
+        image = image.convert("RGB")
+        log_memory("After convert")
+
+        image = image.resize((1024, 1024))
+        log_memory("After resize")
 
         image_np = np.asarray(image)
 
@@ -81,9 +101,11 @@ class EnsemblePredictor:
             self.NUM_CLASSES,
         )
 
-        for patch, position in extract_patches(image_np):
+        for i, (patch, position) in enumerate(extract_patches(image_np)):
 
             prediction = self._predict_patch(patch)
+
+            log_memory(f"After patch {i}")
 
             add_patch_prediction(
                 prediction_sum,

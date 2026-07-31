@@ -45,6 +45,9 @@ async def predict(file: UploadFile = File(...)):
     try:
         image = Image.open(file.file)
 
+        print("Original size:", image.size)
+        print("Mode:", image.mode)
+
         predictor = get_predictor()
         result = predictor.predict(image)
         mask_base64 = predictor._mask_to_base64(result["mask"])
