@@ -4,7 +4,7 @@ uvicorn==0.52.0
 numpy==2.5.1
 pillow==12.3.0
 
-onnxruntime==1.22.1
+onnxruntime==1.28.0
 
 huggingface_hub==1.25.1
 python-multipart==0.0.32

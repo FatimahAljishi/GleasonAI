@@ -26,29 +26,6 @@ class EnsemblePredictor:
 
         print("✓ ONNX model loaded")
 
-    def _load_model(
-        self,
-        encoder_name: str,
-        checkpoint_path: str,
-    ):
-
-        model = smp.Unet(
-            encoder_name=encoder_name,
-            encoder_weights=None,
-            in_channels=3,
-            classes=self.NUM_CLASSES,
-            activation=None,
-        )
-
-        weights = torch.load(checkpoint_path, map_location=self.device)
-
-        model.load_state_dict(weights)
-
-        model.to(self.device)
-        model.eval()
-
-        return model
-
     def _preprocess(self, image: Image.Image):
 
         image = image.convert("RGB")
