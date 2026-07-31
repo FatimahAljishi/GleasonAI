@@ -1,4 +1,5 @@
 from pathlib import Path
+from xml.parsers.expat import model
 import torch
 import segmentation_models_pytorch as smp
 import numpy as np
@@ -62,12 +63,9 @@ class EnsemblePredictor:
             activation=None,
         )
 
-        checkpoint = torch.load(
-            checkpoint_path,
-            map_location=self.device,
-        )
+        weights = torch.load(checkpoint_path, map_location=self.device)
 
-        model.load_state_dict(checkpoint["model_state_dict"])
+        model.load_state_dict(weights)
 
         model.to(self.device)
         model.eval()
