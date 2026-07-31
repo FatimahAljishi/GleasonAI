@@ -25,12 +25,6 @@ def get_predictor():
             local_dir=CACHE_DIR,
         )
 
-        resnext_checkpoint = hf_hub_download(
-            repo_id="FatimahAljishi/gleasonai-models",
-            filename="unet_epoch11_weights.pt",
-            local_dir=CACHE_DIR,
-        )
-
         _predictor = EnsemblePredictor(
             efficientnet_checkpoint=efficientnet_checkpoint,
         )
