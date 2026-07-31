@@ -1,6 +1,8 @@
 import { useState } from "react";
 import axios from "axios";
 import "./App.css";
+import { FiUploadCloud } from "react-icons/fi";
+import { HiCheckCircle } from "react-icons/hi";
 
 export default function App() {
   const [image, setImage] = useState(null);
@@ -17,13 +19,7 @@ export default function App() {
 
     if (!file) return;
 
-    setImage(file);
-    setPreview(URL.createObjectURL(file));
-
-    // Reset previous prediction
-    setMask(null);
-    setGleasonScore("");
-    setError("");
+    loadImage(file);
   };
 
   const handleDiagnose = async () => {
@@ -60,6 +56,40 @@ export default function App() {
     }
   };
 
+  const getGradeColor = (grade) => {
+    switch (Number(grade)) {
+      case 3:
+        return "rgb(0, 0, 255)"; // Blue (Grade 3)
+      case 4:
+        return "rgb(255, 230, 0)"; // Yellow (Grade 4)
+      case 5:
+        return "rgb(255, 0, 0)"; // Red (Grade 5)
+      case 1:
+        return "rgb(0, 128, 0)"; // Green (Benign)
+      default:
+        return "#0f4c81"; // Default blue
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+
+    const file = e.dataTransfer.files[0];
+
+    if (!file) return;
+
+    loadImage(file);
+  };
+
+  const loadImage = (file) => {
+    setImage(file);
+    setPreview(URL.createObjectURL(file));
+
+    setMask(null);
+    setGleasonScore("");
+    setError("");
+  };
+
   return (
     <div className="app">
       <h1>GleasonAI</h1>
@@ -69,7 +99,44 @@ export default function App() {
       </p>
 
       <div className="upload-section">
-        <input type="file" accept="image/*" onChange={handleFileChange} />
+        <input
+          id="file-upload"
+          type="file"
+          accept="image/*"
+          hidden
+          onChange={handleFileChange}
+        />
+
+        <div
+          className="drop-zone"
+          onClick={() => document.getElementById("file-upload").click()}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={handleDrop}
+        >
+          {!image ? (
+            <>
+              <div className="upload-icon">
+                <FiUploadCloud />
+              </div>
+
+              <h2>Drag & Drop a Tissue Image</h2>
+
+              <p>or click to browse your computer</p>
+            </>
+          ) : (
+            <>
+              <div className="upload-icon">
+                <HiCheckCircle />
+              </div>
+
+              <h2>{image.name}</h2>
+
+              <p>Ready for diagnosis</p>
+
+              <span>Click here to choose another image</span>
+            </>
+          )}
+        </div>
 
         <button onClick={handleDiagnose} disabled={loading}>
           {loading ? "Diagnosing..." : "Diagnose"}
@@ -90,6 +157,32 @@ export default function App() {
             <h2>Segmentation</h2>
 
             {mask && <img src={mask} alt="Prediction" />}
+            <div className="legend">
+              <div className="legend-item">
+                <span className="color background"></span>
+                <span>Background</span>
+              </div>
+
+              <div className="legend-item">
+                <span className="color benign"></span>
+                <span>Benign</span>
+              </div>
+
+              <div className="legend-item">
+                <span className="color grade3"></span>
+                <span>Grade 3</span>
+              </div>
+
+              <div className="legend-item">
+                <span className="color grade4"></span>
+                <span>Grade 4</span>
+              </div>
+
+              <div className="legend-item">
+                <span className="color grade5"></span>
+                <span>Grade 5</span>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -98,11 +191,46 @@ export default function App() {
         <div className="result">
           <h2>Diagnosis</h2>
 
-          <p>Gleason Score</p>
+          <div className="diagnosis-row">
+            <span>Primary Pattern</span>
 
-          <h1>{gleasonScore}</h1>
+            <strong
+              style={{
+                color: getGradeColor(gleasonScore.split("=")[0].split("+")[0]),
+              }}
+            >
+              {gleasonScore.split("=")[0].split("+")[0]}
+            </strong>
+          </div>
+
+          <div className="diagnosis-row">
+            <span>Secondary Pattern</span>
+
+            <strong
+              style={{
+                color: getGradeColor(gleasonScore.split("=")[0].split("+")[1]),
+              }}
+            >
+              {gleasonScore.split("=")[0].split("+")[1]}
+            </strong>
+          </div>
+
+          <hr />
+
+          <div className="diagnosis-row total">
+            <span>Gleason Score</span>
+            <strong>{gleasonScore}</strong>
+          </div>
         </div>
       )}
+
+      <footer className="disclaimer">
+        <strong>Disclaimer:</strong> GleasonAI is a research prototype developed
+        as part of my Master's dissertation at the University of Edinburgh. It
+        is intended for educational and demonstration purposes only and must not
+        be used for clinical diagnosis, medical decision-making, or patient
+        care.
+      </footer>
     </div>
   );
 }

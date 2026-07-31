@@ -132,7 +132,7 @@ class EnsemblePredictor:
         colors = np.array(
             [
                 [255, 255, 255],  # Background
-                [0, 255, 0],  # Benign
+                [0, 128, 0],  # Benign
                 [255, 165, 0],  # Unknown
                 [0, 0, 255],  # Grade 3
                 [255, 255, 0],  # Grade 4
