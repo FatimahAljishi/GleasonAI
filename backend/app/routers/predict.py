@@ -33,7 +33,6 @@ def get_predictor():
 
         _predictor = EnsemblePredictor(
             efficientnet_checkpoint=efficientnet_checkpoint,
-            resnext_checkpoint=resnext_checkpoint,
         )
 
         print("Models loaded.")

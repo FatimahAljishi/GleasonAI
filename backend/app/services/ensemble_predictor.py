@@ -19,7 +19,6 @@ class EnsemblePredictor:
     def __init__(
         self,
         efficientnet_checkpoint: str,
-        resnext_checkpoint: str,
         device: str | None = None,
     ):
 
@@ -32,22 +31,12 @@ class EnsemblePredictor:
             checkpoint_path=efficientnet_checkpoint,
         )
 
-        self.resnext = self._load_model(
-            encoder_name="se_resnext50_32x4d",
-            checkpoint_path=resnext_checkpoint,
-        )
-
         self.preprocess_eff = smp.encoders.get_preprocessing_fn(
             "efficientnet-b4",
             pretrained="imagenet",
         )
 
-        self.preprocess_res = smp.encoders.get_preprocessing_fn(
-            "se_resnext50_32x4d",
-            pretrained="imagenet",
-        )
-
-        print("✓ Ensemble loaded")
+        print("✓ Model loaded")
 
     def _load_model(
         self,
@@ -96,25 +85,13 @@ class EnsemblePredictor:
             self.preprocess_eff,
         )
 
-        # ResNeXt preprocessing
-        res_tensor = self._preprocess(
-            patch,
-            self.preprocess_res,
-        )
-
         with torch.no_grad():
 
             eff_logits = self.efficientnet(eff_tensor)
 
-            res_logits = self.resnext(res_tensor)
-
             eff_probs = F.softmax(eff_logits, dim=1)
 
-            res_probs = F.softmax(res_logits, dim=1)
-
-            ensemble_probs = (eff_probs + res_probs) / 2
-
-        return ensemble_probs.squeeze(0).cpu().numpy()
+        return eff_probs.squeeze(0).cpu().numpy()
 
     def predict(
         self,
