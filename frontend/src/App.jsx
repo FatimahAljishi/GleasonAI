@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import axios from "axios";
 import "./App.css";
 import { FiUploadCloud } from "react-icons/fi";
@@ -15,6 +15,8 @@ export default function App() {
   const [error, setError] = useState("");
 
   const handleFileChange = (e) => {
+    if (loading) return;
+
     const file = e.target.files[0];
 
     if (!file) return;
@@ -74,6 +76,8 @@ export default function App() {
   const handleDrop = (e) => {
     e.preventDefault();
 
+    if (loading) return;
+
     const file = e.dataTransfer.files[0];
 
     if (!file) return;
@@ -90,6 +94,32 @@ export default function App() {
     setError("");
   };
 
+  const loadSampleImage = async (imagePath) => {
+    const response = await fetch(imagePath);
+
+    const blob = await response.blob();
+
+    const file = new File([blob], imagePath.split("/").pop(), {
+      type: blob.type,
+    });
+
+    loadImage(file);
+
+    uploadRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+
+    uploadRef.current?.classList.add("pulse");
+
+    setTimeout(() => {
+      uploadRef.current?.classList.remove("pulse");
+    }, 1500);
+  };
+
+  const uploadRef = useRef(null);
+  const fileInputRef = useRef(null);
+
   return (
     <div className="app">
       <h1>GleasonAI</h1>
@@ -98,20 +128,41 @@ export default function App() {
         AI-assisted Gleason grading from prostate histopathology images.
       </p>
 
-      <div className="upload-section">
+      <div
+        className={`upload-section ${image ? "highlight-upload" : ""}`}
+        ref={uploadRef}
+      >
         <input
+          ref={fileInputRef}
           id="file-upload"
           type="file"
           accept="image/*"
           hidden
+          disabled={loading}
           onChange={handleFileChange}
         />
 
         <div
           className="drop-zone"
-          onClick={() => document.getElementById("file-upload").click()}
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={handleDrop}
+          onClick={() => {
+            if (loading) return;
+            fileInputRef.current?.click();
+          }}
+          onDragOver={(e) => {
+            e.preventDefault();
+
+            if (loading) return;
+
+            e.dataTransfer.dropEffect = "copy";
+          }}
+          onDrop={(e) => {
+            if (loading) {
+              e.preventDefault();
+              return;
+            }
+
+            handleDrop(e);
+          }}
         >
           {!image ? (
             <>
@@ -137,6 +188,16 @@ export default function App() {
             </>
           )}
         </div>
+
+        {loading && (
+          <div className="loading-overlay">
+            <div className="loader"></div>
+
+            <h3>Diagnosing image...</h3>
+
+            <p>Please wait while the AI analyzes the tissue.</p>
+          </div>
+        )}
 
         <button onClick={handleDiagnose} disabled={loading}>
           {loading ? "Diagnosing..." : "Diagnose"}
@@ -223,6 +284,67 @@ export default function App() {
           </div>
         </div>
       )}
+
+      <div className="sample-images">
+        <h2>Try a Sample Image</h2>
+
+        <p>No histopathology image available? Select one of these examples.</p>
+
+        <div className="sample-grid">
+          <div className="sample-card">
+            <img src="/samples/slide006_core100.jpg" alt="Sample 1" />
+
+            <button
+              disabled={loading}
+              onClick={() => loadSampleImage("/samples/slide006_core100.jpg")}
+            >
+              Use Sample
+            </button>
+          </div>
+
+          <div className="sample-card">
+            <img src="/samples/slide002_core050.jpg" alt="Sample 2" />
+
+            <button
+              disabled={loading}
+              onClick={() => loadSampleImage("/samples/slide002_core050.jpg")}
+            >
+              Use Sample
+            </button>
+          </div>
+
+          <div className="sample-card">
+            <img src="/samples/slide006_core010.jpg" alt="Sample 3" />
+
+            <button
+              disabled={loading}
+              onClick={() => loadSampleImage("/samples/slide006_core010.jpg")}
+            >
+              Use Sample
+            </button>
+          </div>
+        </div>
+
+        <p className="sample-note">Looking for more images?</p>
+
+        <div className="dataset-links">
+          <a
+            href="https://gleason2019.grand-challenge.org/Register/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            MICCAI 2019 Gleason challenge dataset
+          </a>
+
+          <a
+            href="https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/OCYCMP"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Tissue MicroArray Zurich dataset
+          </a>
+        </div>
+      </div>
 
       <footer className="disclaimer">
         <strong>Disclaimer:</strong> GleasonAI is a research prototype developed
